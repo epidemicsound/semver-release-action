@@ -1,6 +1,7 @@
 package event
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 
@@ -109,9 +110,24 @@ func readEvent(cmd *cobra.Command, filePath string) []byte {
 	file, err := os.Open(filePath)
 	action.AssertNoError(cmd, err, "could not open GitHub event file: %s", err)
 	defer file.Close()
-
 	b, err := ioutil.ReadAll(file)
 	action.AssertNoError(cmd, err, "could not read GitHub event file: %s", err)
 
+	return stripOrg(b)
+}
+
+func stripOrg(byteString []byte) []byte {
+	// workaround for https://github.com/google/go-github/issues/131
+	var o map[string]interface{}
+	_ = json.Unmarshal(byteString, &o)
+	if o != nil {
+		repo := o["repository"]
+		if repo != nil {
+			if repo, ok := repo.(map[string]interface{}); ok {
+				delete(repo, "organization")
+			}
+		}
+	}
+	b, _ := json.MarshalIndent(o, "", "  ")
 	return b
 }
