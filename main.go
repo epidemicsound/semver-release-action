@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/K-Phoen/semver-release-action/internal/pkg/event"
@@ -12,7 +11,6 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello Test!")
 	rootCmd := &cobra.Command{
 		Use: "bumper",
 	}
