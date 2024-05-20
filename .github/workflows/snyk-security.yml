@@ -1,8 +1,39 @@
-name: Run Snyk Scan for Package Vulnerabilities for semver-release-action
-'on': push
+name: "Snyk Workflow -- Go"
+
+on: push
+
 jobs:
-  snyk-scan-go:
+  snyk-scan:
     permissions:
-      contents: read
-      id-token: write
-    uses: epidemicsound/github-workflows/.github/workflows/snyk-scan-go.yaml@main
+      contents: "read"
+      id-token: "write"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud for accessing Snyk token
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "projects/747834912006/locations/global/workloadIdentityPools/epidemicsound/providers/github"
+          service_account: "sast-dast-sa@es-platform-staging-fc6c.iam.gserviceaccount.com"
+
+      - id: "secrets"
+        name: Access Snyk secret token
+        uses: "google-github-actions/get-secretmanager-secrets@v2"
+        with:
+          secrets: |-
+            token:es-platform-staging-fc6c/snyk-token-secret
+         
+      - name: Setup Snyk
+        uses: snyk/actions/setup@master
+
+      - name: Add Snyk scan results to Snyk dashboard
+        run: snyk monitor -d --all-projects
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ steps.secrets.outputs.token }}
+
+      - name: Run Snyk to check for vulnerabilities
+        run: snyk test --severity-threshold=critical --all-projects
+        env:
+          SNYK_TOKEN: ${{ steps.secrets.outputs.token }}
